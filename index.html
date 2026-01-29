@@ -26,7 +26,12 @@
     </script>
 
     <style>
-        body { background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        /* Fix iOS Scroll Bounce & Height */
+        body { 
+            background-color: #f8fafc; 
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
         
         .header-gradient { 
             background: linear-gradient(135deg, #2563eb 0%, #0f172a 100%); 
@@ -127,7 +132,7 @@
             </div>
 
             <!-- List Items -->
-            <div class="flex-1 overflow-y-auto px-5 pt-2 pb-24 no-scrollbar" id="catalogScroll">
+            <div class="flex-1 overflow-y-auto px-5 pt-2 pb-32 no-scrollbar" id="catalogScroll">
                 <div id="loadingState" class="text-center py-20">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
                     <p class="text-xs text-slate-400">Mengambil data gudang...</p>
@@ -146,8 +151,10 @@
         </div>
 
         <!-- VIEW: PANDUAN / GUIDELINE -->
-        <div id="viewGuideline" class="hidden flex-1 flex-col h-full overflow-hidden animate-fade-in bg-white/50 backdrop-blur-sm">
-            <div class="flex-1 overflow-y-auto px-5 pt-6 pb-24 no-scrollbar">
+        <!-- FIX: Added 'flex' class here to ensure flex-1 child works correctly for scrolling -->
+        <div id="viewGuideline" class="hidden flex-1 flex flex-col h-full overflow-hidden animate-fade-in bg-white/50 backdrop-blur-sm">
+            <!-- FIX: Increased bottom padding to pb-40 to prevent content cut-off behind nav -->
+            <div class="flex-1 overflow-y-auto px-5 pt-6 pb-40 no-scrollbar" id="guidelineScroll">
                 
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 mb-6 relative overflow-hidden">
                     <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
@@ -168,7 +175,7 @@
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Nominal Penempatan</label>
                             <div class="relative">
                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
-                                <input type="text" id="depositoNominal" onkeyup="formatRupiah(this)" class="input-concave w-full pl-10 pr-4 py-3 rounded-xl text-sm font-bold text-slate-700" placeholder="0">
+                                <input type="tel" inputmode="numeric" pattern="[0-9]*" id="depositoNominal" onkeyup="formatRupiah(this)" class="input-concave w-full pl-10 pr-4 py-3 rounded-xl text-sm font-bold text-slate-700" placeholder="0">
                             </div>
                         </div>
                         <div>
@@ -191,18 +198,18 @@
                         </button>
                     </div>
 
-                    <!-- Form Pelunasan Kredit (Baru) -->
+                    <!-- Form Pelunasan Kredit -->
                     <div id="formLunas" class="calc-form space-y-4 hidden animate-fade-in">
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Plafon Kredit</label>
                             <div class="relative">
                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
-                                <input type="text" id="kreditPlafon" onkeyup="formatRupiah(this)" class="input-concave w-full pl-10 pr-4 py-3 rounded-xl text-sm font-bold text-slate-700" placeholder="0">
+                                <input type="tel" inputmode="numeric" pattern="[0-9]*" id="kreditPlafon" onkeyup="formatRupiah(this)" class="input-concave w-full pl-10 pr-4 py-3 rounded-xl text-sm font-bold text-slate-700" placeholder="0">
                             </div>
                         </div>
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Jangka Waktu (Bulan)</label>
-                            <input type="number" id="kreditTenor" class="input-concave w-full px-4 py-3 rounded-xl text-sm font-bold text-slate-700" placeholder="Contoh: 12">
+                            <input type="number" inputmode="numeric" id="kreditTenor" class="input-concave w-full px-4 py-3 rounded-xl text-sm font-bold text-slate-700" placeholder="Contoh: 12">
                         </div>
                         <button onclick="checkKredit()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-purple-200 active:scale-95 transition-transform flex items-center justify-center gap-2">
                             <i class="fas fa-search"></i> Cek Souvenir
@@ -474,6 +481,11 @@
 
         // === HASIL RESULT CARD ===
         function showResultCards(grades) {
+            // FIX: Blur input untuk menutup keyboard
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+
             const area = document.getElementById('resultArea');
             const container = document.getElementById('resultCardsContainer');
             
@@ -487,13 +499,10 @@
                         <p class="text-sm font-bold text-slate-500">Belum memenuhi syarat</p>
                     </div>
                 `;
-                setTimeout(() => area.scrollIntoView({ behavior: 'smooth' }), 100);
                 return;
             }
 
-            // Loop untuk setiap hasil (bisa 1 atau 2 kartu)
             grades.forEach((grade, index) => {
-                // Separator "ATAU" jika ada 2 opsi
                 if (index > 0) {
                     const separator = document.createElement('div');
                     separator.className = 'flex items-center gap-2 justify-center py-1';
@@ -505,7 +514,6 @@
                     container.appendChild(separator);
                 }
 
-                // Cek Stok untuk kelas ini
                 const itemsInClass = inventoryData.filter(i => i.kategori === grade && i.stok > 0);
                 const hasStock = itemsInClass.length > 0;
                 
@@ -515,7 +523,7 @@
                 
                 if (hasStock) {
                     card.className = `class-card flex items-center p-4 gap-4 ${colors.bg} border-l-4 ${colors.border.replace('border', 'border-l')} cursor-pointer`;
-                    card.style.borderLeftColor = colors.text.replace('text-', '').replace('600', '500'); // Hack simple color match
+                    card.style.borderLeftColor = colors.text.replace('text-', '').replace('600', '500'); 
                     card.innerHTML = `
                         <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm flex-none">
                             <i class="fas ${colors.icon} text-xl ${colors.text}"></i>
@@ -529,7 +537,6 @@
                     `;
                     card.onclick = () => { switchTab('catalog'); filterCategory(grade); };
                 } else {
-                    // Tampilan Stok Habis
                     card.className = `class-card flex items-center p-4 gap-4 bg-slate-100 border border-slate-200 opacity-80`;
                     card.innerHTML = `
                         <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shadow-inner flex-none">
@@ -547,8 +554,6 @@
                 
                 container.appendChild(card);
             });
-            
-            setTimeout(() => area.scrollIntoView({ behavior: 'smooth' }), 100);
         }
 
         // ============================================
@@ -601,7 +606,7 @@
                 grades = ['A', 'B'];
             }
             else {
-                grades = ['X']; // Di bawah 8 Juta
+                grades = ['X']; 
             }
 
             showResultCards(grades);
@@ -647,7 +652,7 @@
                 grades = ['A', 'B'];
             }
             else {
-                grades = ['X']; // Di bawah 15 Juta
+                grades = ['X']; 
             }
 
             showResultCards(grades);
